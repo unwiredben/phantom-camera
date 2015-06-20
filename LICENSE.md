@@ -1,6 +1,7 @@
 The MIT License (MIT)
 
 Copyright (C) 2014 Pebble Technology
+Copyright (C) 2015 Ben Combee
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
