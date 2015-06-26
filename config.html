@@ -24,21 +24,22 @@
 		background-color: #414E4C;
 	}
 	.container {
+		padding: 30px;
 		background-color: white;
 	}
 	</style>	
 </head>
 <body>
 <div class="container">
-<div class="row"
+<div class="row">
+<div class="col-md-12">
 <p>Phantom Camera needs access to your Instagram account
 to find pictures to display.  Your access credentials
 are kept on your phone; no user-identifable
 information is saved on the Phantom Camera servers.</p>
+<br>
+<div class="center-block"><a class="btn btn-primary" id="authURL" href="#">Authorize this application on Instagram</a></div>
 </div>
-<div class="row"
-<p><a class="btn btn-default" href="https://instagram.com/oauth/authorize/?client_id=097438c982f1424e8370cd509d75321f&amp;redirect_uri=http://combee.net/phantom-camera/config.html&amp;response_type=token">
-Authorize this application on Instagram</a></p>
 </div>
 </div>
 
@@ -50,13 +51,37 @@ Authorize this application on Instagram</a></p>
 
 	function getParameterByName(name) {
 		name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
-		var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-		results = regex.exec(location.search);
+		var regex = new RegExp("[\\?&#]" + name + "=([^&#]*)"),
+		results = regex.exec(location.search + location.hash);
 		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 	}
 
 	$(document).ready(function() {
-		// FIXME: if we have the auth token in our hashtag, return to the Pebble app
+		// if we have the auth token in our url, return to the Pebble app
+		var return_to = getParameterByName("return_to");
+		var access_token = getParameterByName("access_token");
+		if (access_token) {
+			return_to = return_to || "pebblejs://close#";
+			console.log("nav to " + return_to + access_token);
+			document.location = return_to + access_token;
+		}
+		else if (getParameterByName("error")) {
+			return_to = return_to || "pebblejs://close#";
+			console.log("authentication failed");
+			document.location = return_to;
+		}
+		else {
+			var auth_url =
+				"https://instagram.com/oauth/authorize/?" + 
+				"client_id=097438c982f1424e8370cd509d75321f&" +
+				"response_type=token&" +
+				"redirect_uri=http://combee.net/phantom-camera/config.html";
+			if (return_to) {
+				auth_url += "?return_to=" + return_to;
+			}
+			console.log(auth_url);
+			$('#authURL').prop('href', auth_url);
+		}
 	});
 </script>
 </body>
