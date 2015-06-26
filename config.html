@@ -5,10 +5,10 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-	<title>Resistor Time Configuration</title>
+	<title>Phantom Camera Configuration</title>
 
 	<!-- Bootstrap -->
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 
 	<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
 	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -27,34 +27,20 @@
 </head>
 <body>
 <div class="container">
-	<div class="panel panel-default">
-	<div class="panel-heading">Silkscreen color:</div>
-	<div class="panel-body">
-		<div class="radio">
-			<label>
-			<input id="color_green" name="color" type="radio" value="green">Green with white text
-			</label>
-		</div>
-		<div class="radio">
-			<label>
-			<input id="color_black" name="color" type="radio" value="black">Black with white text
-			</label>
-		</div>
-		<div class="radio">
-			<label>
-			<input id="color_white" name="color" type="radio" value="white">White with black text
-			</label>
-		</div>
-	</div>
-	</div>
+<p>Phantom Camera needs access to your Instagram account
+to find pictures to display.  Your access credentials
+are kept on your phone; no user-identifable
+information is saved on the Phantom Camera servers.</p>
 
-	<button id="buttonDone" class="btn btn-default">Done</button>
+<p><a href="https://instagram.com/oauth/authorize/?client_id=097438c982f1424e8370cd509d75321f&amp;redirect_uri=http://combee.net/phantom-camera/config.html&amp;response_type=token">
+Authorize this application on Instagram
+</a></p>
 </div>
 
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 <script>
 
 	function getParameterByName(name) {
@@ -64,19 +50,8 @@
 		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 	}
 
-	// setup button handler for buttonDone
-	$("#buttonDone").click(function() {
-		var return_to = getParameterByName("return_to") || "pebblejs://close#";
-		var color = $('[name=color]:checked').val();
-		document.location = return_to + color;
-	});
-	
 	$(document).ready(function() {
-		// get default value from the url
-		var color = getParameterByName("color") || "green";
-		if (color) {
-			$('#color_' + color).prop("checked", true);
-		}
+		// FIXME: if we have the auth token in our hashtag, return to the Pebble app
 	});
 </script>
 </body>
