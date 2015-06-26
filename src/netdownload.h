@@ -1,7 +1,10 @@
 #include <pebble.h>
 
+/* The key used to indicate Instagram token state. Boolean */
+#define UPDATE_TOKEN 1
+    
 /* The key used to transmit download data. Contains byte array. */
-#define NETDL_DATA 0x696d6700 
+#define NETDL_DATA 5000 
 /* The key used to start a new image transmission. Contains uint32 size */
 #define NETDL_BEGIN NETDL_DATA + 1
 /* The key used to finalize an image transmission. Data not defined. */
