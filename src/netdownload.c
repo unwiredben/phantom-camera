@@ -32,20 +32,19 @@ void netdownload_initialize(NetDownloadCallback callback) {
     app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
 
-void netdownload_deinitialize() {
+void netdownload_deinitialize(void) {
     netdownload_destroy_context(app_message_get_context());
     app_message_set_context(NULL);
 }
 
-void netdownload_request(char *url) {
+void request_picture(void) {
     DictionaryIterator *outbox;
     app_message_outbox_begin(&outbox);
     // Tell the javascript how big we want each chunk of data: max possible size - dictionary overhead with one Tuple in it.
     uint32_t chunk_size = app_message_inbox_size_maximum() - dict_calc_buffer_size(1);
-    dict_write_int(outbox, NETDL_CHUNK_SIZE, &chunk_size, sizeof(uint32_t), false);
-    // Send the URL
-    dict_write_cstring(outbox, NETDL_URL, url);
-
+    dict_write_uint32(outbox, NETDL_CHUNK_SIZE, chunk_size);
+    // include request token
+    dict_write_int8(outbox, TAKE_PICTURE, 0);
     app_message_outbox_send();
 }
 

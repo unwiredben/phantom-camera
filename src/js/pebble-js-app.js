@@ -1,4 +1,5 @@
 /* jshint sub: true */
+/* globals JpegImage */
 
 var sendSuccess = function(e) {
     console.log("sendSuccess, e: " + JSON.stringify(e));
@@ -53,7 +54,7 @@ Pebble.addEventListener("appmessage", function(e) {
         Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
     }
     else if ('TAKE_PICTURE' in e.payload) {
-        // FIXME - trigger server to get picture, return url, then use that as NETDL_URL process
+        takePicture();
     }
 });
 
@@ -155,3 +156,115 @@ Pebble.addEventListener("webviewclosed", function(e) {
     Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
 });
 
+
+// step 1 -- get current geolocation
+
+function takePicture() {
+    if (localStorage.getItem("access_token")) {
+        navigator.geolocation.getCurrentPosition(
+            findNearbyPhotos,
+            locationError,
+            {
+                enableHighAccuracy: true, 
+                maximumAge: 10000, 
+                timeout: 10000
+            });
+    }
+    else {
+        console.log("no access_token set");
+    }
+}
+
+function locationError(err) {
+    console.log('location error (' + err.code + '): ' + err.message);
+    // FIXME: send "can't search" message back to watch
+}
+
+// step 2 - make API call to Instagram to get nearby pictures
+function findNearbyPhotos(pos) {
+    console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
+    // test at home
+    pos.coords.latitude = 30.3278514;
+    pos.coords.longitude = -97.7362387;
+    var req = new XMLHttpRequest();
+    var url = "https://api.instagram.com/v1/media/search" +
+        "?lat=" + pos.coords.latitude +
+        "&lng=" + pos.coords.longitude +
+        "&access_token=" + localStorage.getItem("access_token");
+    console.log("GET " + url);
+    req.open('GET', url, true);
+    req.onload = selectPhotos.bind(this, req);
+    req.send();
+}
+
+// step 3 - find candidate photos to request and resample
+function selectPhotos(req, e) {
+    if (req.readyState == 4 && req.status == 200) {
+        var response = JSON.parse(req.responseText);
+        var data = response.data;
+        var candidates = [];
+        var i, entry;
+        for (i in data) {
+            entry = data[i];
+            if (entry.type == "image" &&
+                entry.images &&
+                entry.images.thumbnail &&
+                entry.images.thumbnail.url &&
+                entry.user &&
+                entry.user.username &&
+                entry.created_time) {
+                candidates.push({
+                    url: entry.images.thumbnail.url,
+                    username: entry.user.username,
+                    created_time: entry.created_time
+                });
+                //console.log("url: " + entry.images.thumbnail.url +
+                //            ", user: " + entry.user.username +
+                //            ", time: " + entry.created_time);
+            }
+        }
+
+        // process candidates list, pick most recent one to fetch
+        if (candidates.length > 0) {
+            var latestEntry = {
+                time: 0
+            };
+            for (i in candidates) {
+                entry = candidates[i];
+                if (entry.time > latestEntry.time)
+                    latestEntry = entry;
+            }
+            processPhoto(entry);
+            // possibly post other candidates to timeline in future version
+        }
+        else {
+            console.log("no suitable candidates");
+            // FIXME: return error to user
+        }
+    }
+    else {
+        console.log('Error');
+        // FIXME - indicate error to user on watch
+    }
+}
+
+function processPhoto(photo) {
+    console.log("processing photo at url " + photo.url);
+
+    // send to phone meta data on entry
+    var msg = {
+        PICTURE_USER: photo.username,
+        PICTURE_TIME: photo.created_time
+    };
+    console.log("sending " + JSON.stringify(msg));
+    Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
+
+    // load image into JPEG decoder library
+    var j = new JpegImage();
+    j.onload = function() {
+        console.log("decoded image, size: " + j.width + "x" + j.height);
+        // produce PNG using 144x144 center crop of picture
+        // post PNG data back to watch app
+    };
+    j.load(photo.url);
+}

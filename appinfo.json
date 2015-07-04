@@ -5,6 +5,10 @@
         "NETDL_DATA": 5000,
         "NETDL_END": 5002,
         "NETDL_URL": 5004,
+        "PICTURE_TEXT": 4,
+        "PICTURE_TIME": 5,
+        "PICTURE_USER": 3,
+        "TAKE_PICTURE": 2,
         "UPDATE_TOKEN": 1
     },
     "capabilities": [

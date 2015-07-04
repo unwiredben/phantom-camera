@@ -1,7 +1,19 @@
 #include <pebble.h>
 
-/* The key used to indicate Instagram token state. Boolean */
+/* The key used to indicate Instagram token state. UInt8 as boolean */
 #define UPDATE_TOKEN 1
+
+/* The key used to indicate that you should grab the nearest picture, UInt8 - ignored */
+#define TAKE_PICTURE 2
+
+/* key for username associated with incoming picture, string */
+#define PICTURE_USER 3
+
+/* key for description text associated with incoming picture, string */
+#define PICTURE_TEXT 4
+
+/* key for display time of incoming picture, string */
+#define PICTURE_TIME 5
     
 /* The key used to transmit download data. Contains byte array. */
 #define NETDL_DATA 5000 
@@ -37,10 +49,8 @@ typedef struct {
 
 NetDownloadContext* netdownload_create_context(NetDownloadCallback callback);
 
-void netdownload_initialize();
-void netdownload_deinitialize();
-
-void netdownload_request(char *url);
+void netdownload_initialize(NetDownloadCallback callback);
+void netdownload_deinitialize(void);
 
 // Call this when you are done using an image to properly free memory.
 void netdownload_destroy(NetDownload *image);
@@ -50,4 +60,4 @@ void netdownload_dropped(AppMessageResult reason, void *context);
 void netdownload_out_success(DictionaryIterator *iter, void *context);
 void netdownload_out_failed(DictionaryIterator *iter, AppMessageResult reason, void *context);
 
-
+void request_picture(void);

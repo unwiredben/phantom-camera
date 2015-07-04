@@ -7,7 +7,7 @@ static TextLayer *text_layer;
 static BitmapLayer *bitmap_layer;
 static GBitmap *current_bmp;
 
-void show_next_image() {
+static void take_picture() {
     // show that we are loading by showing no image
     bitmap_layer_set_bitmap(bitmap_layer, NULL);
 
@@ -19,7 +19,16 @@ void show_next_image() {
         current_bmp = NULL;
     }
 
-    netdownload_request("");
+    request_picture();
+}
+
+static void click_handler(ClickRecognizerRef recognizer, void *context) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "main - select");
+    take_picture();
+}
+
+static void click_config_provider(void *context) {
+    window_single_click_subscribe(BUTTON_ID_SELECT, click_handler);
 }
 
 static void window_load(Window *window) {
@@ -29,6 +38,13 @@ static void window_load(Window *window) {
     bitmap_layer = bitmap_layer_create(bounds);
     layer_add_child(window_layer, bitmap_layer_get_layer(bitmap_layer));
     current_bmp = NULL;
+
+    text_layer = text_layer_create((GRect) { .origin = { 0, 72 }, .size = { bounds.size.w, 20 } });
+    text_layer_set_text(text_layer, "Click!");
+    text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
+    layer_add_child(window_layer, text_layer_get_layer(text_layer));
+    
+    window_set_click_config_provider(window, click_config_provider);
 }
 
 static void window_unload(Window *window) {
@@ -57,10 +73,6 @@ void download_complete_handler(NetDownload *download) {
     netdownload_destroy(download);
 }
 
-void tap_handler(AccelAxisType accel, int32_t direction) {
-    show_next_image();
-}
-
 static void init(void) {
     // Need to initialize this first to make sure it is there when
     // the window_load function is called by window_stack_push.
@@ -73,8 +85,6 @@ static void init(void) {
     });
     const bool animated = true;
     window_stack_push(window, animated);
-
-    accel_tap_service_subscribe(tap_handler);
 }
 
 static void deinit(void) {
@@ -84,9 +94,7 @@ static void deinit(void) {
 
 int main(void) {
     init();
-
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
-
     app_event_loop();
     deinit();
 }
