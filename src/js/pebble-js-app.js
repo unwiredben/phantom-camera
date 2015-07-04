@@ -76,7 +76,6 @@ function downloadBinaryResource(imageURL, callback, errorCallback) {
             callback(arr);
         }
         else {
-            errorCallback("Request status is " + req.status);
         }
     };
     req.onerror = function(e) {
@@ -262,9 +261,29 @@ function processPhoto(photo) {
     // load image into JPEG decoder library
     var j = new JpegImage();
     j.onload = function() {
-        console.log("decoded image, size: " + j.width + "x" + j.height);
+        var w = j.width, h = j.height;
+        console.log("decoded image, size: " + w + "x" + h);
+        if (w != 150 && h != 150)
+            return;
+        
         // produce PNG using 144x144 center crop of picture
         // post PNG data back to watch app
+        var imgData = {
+            width: 144,
+            height: 144,
+            data: new Uint8Array(144 * 144 * 4)
+        };
+        j.copyToImageData(imgData);
+
+        // now, resample the imgData to BGRA color
+        var pebbleData = new Uint8Array(144 * 144);
+        for (var i = 0, d = 0; i < 144 * 144; i++, d += 4) {
+            pebbleData[i] =
+                /* R */ (imgData.data[d] & 0xC0) >> 4 |
+                /* G */ (imgData.data[d + 1] & 0xC0) >> 2 |
+                /* B */ (imgData.data[d + 2] & 0xC0) |
+                0x03;
+        }
     };
     j.load(photo.url);
 }
