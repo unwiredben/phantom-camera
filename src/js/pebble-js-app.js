@@ -1,5 +1,5 @@
 /* jshint sub: true */
-/* globals JpegImage, vagueTime */
+/* globals MessageQueue, JpegImage, vagueTime */
 
 /* set minimum based on pebble.h's APP_MESSAGE_INBOX_MINIMUM */
 var CHUNK_SIZE = 124;
@@ -41,7 +41,7 @@ function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
     var sendChunk = function(start) {
         var txbuf = Array.prototype.slice.call(bytes, start, start + chunkSize);
         console.log("Sending " + txbuf.length + " bytes at offset " + start);
-        Pebble.sendAppMessage(
+        MessageQueue.sendAppMessage(
             { "NETDL_DATA": txbuf },
             function(e) {
                 // If there is more data to send - send it.
@@ -50,7 +50,7 @@ function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
                 }
                 // Otherwise we are done sending. Send closing message.
                 else {
-                    Pebble.sendAppMessage({"NETDL_END": "done" }, success, failure);
+                    MessageQueue.sendAppMessage({"NETDL_END": "done" }, success, failure);
                 }
             },
             // Failed to send message - Retry a few times.
@@ -68,7 +68,7 @@ function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
 
     // Let the pebble app know how much data we want to send.
     console.log("Sending NETDL_BEGIN, bytes.length = " + bytes.length);
-    Pebble.sendAppMessage({"NETDL_BEGIN": bytes.length },
+    MessageQueue.sendAppMessage({"NETDL_BEGIN": bytes.length },
                           function (e) {
                               // success - start sending
                               sendChunk(0);
@@ -109,7 +109,7 @@ function findNearbyPhotos(pos) {
     }
     else {
         var msg = { UPDATE_TOKEN: false };
-        Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
+        MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
     }
 }
 
@@ -178,7 +178,7 @@ function processPhoto(photo) {
         })
     };
     console.log("sending " + JSON.stringify(msg));
-    Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
+    MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
 
     // load image into JPEG decoder library
     var j = new JpegImage();
@@ -238,8 +238,8 @@ Pebble.addEventListener("ready", function(e) {
     console.log("NetDownload JS Ready");
     // send current access token state back to app
     var access_token = localStorage.getItem("access_token");
-    var msg = { UPDATE_TOKEN: !!access_token };
-    Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
+    var msg = { UPDATE_TOKEN: access_token ? 1 : 0 };
+    MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
 });
 
 Pebble.addEventListener("showConfiguration", function(e) {
@@ -251,14 +251,14 @@ Pebble.addEventListener("webviewclosed", function(e) {
     if (e.response) {
         console.log("got access token: " + e.response);
         localStorage.setItem("access_token", e.response);
-        msg.UPDATE_TOKEN = true;
+        msg.UPDATE_TOKEN = 1;
     }
     else {
         console.log("no access token received");
         localStorage.setItem("access_token", null);
-        msg.UPDATE_TOKEN = false;
+        msg.UPDATE_TOKEN = 0;
     }
-    Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
+    MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
 });
 
 Pebble.addEventListener("appmessage", function(e) {
