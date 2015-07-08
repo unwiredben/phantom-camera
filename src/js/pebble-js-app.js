@@ -144,14 +144,15 @@ function selectPhotos(req, e) {
         // process candidates list, pick most recent one to fetch
         if (candidates.length > 0) {
             var latestEntry = {
-                time: 0
+                created_time: 0
             };
             for (i in candidates) {
                 entry = candidates[i];
-                if (entry.time > latestEntry.time)
+                if (entry.created_time > latestEntry.created_time) {
                     latestEntry = entry;
+                }
             }
-            processPhoto(entry);
+            processPhoto(latestEntry);
             // possibly post other candidates to timeline in future version
         }
         else {
@@ -187,30 +188,50 @@ function processPhoto(photo) {
         
         // produce PNG using 144x144 center crop of picture
         // post PNG data back to watch app
-        var imgData = {
+        var img = {
             width: 144,
             height: 144,
-            data: new Uint8Array(144 * 144 * 4)
+            data: new Uint8ClampedArray(144 * 144 * 4)
         };
-        j.copyToImageData(imgData);
+        j.copyToImageData(img);
 
         // now, resample the imgData to BGRA color
-        var pebbleData = new Uint8Array(144 * 144);
-        for (var i = 0, d = 0; i < 144 * 144; i++, d += 4) {
-            pebbleData[i] =
-                0xC0 |
-                /* R */ (imgData.data[d] & 0xC0) >> 2 |
-                /* G */ (imgData.data[d + 1] & 0xC0) >> 4 |
-                /* B */ (imgData.data[d + 2] & 0xC0) >> 6;
-        }
+        ditherImage(img.data);
+        var pebbleImg = downsampleImage(img.data);
 
         transferImageBytes(
-            pebbleData, CHUNK_SIZE,
+            pebbleImg, CHUNK_SIZE,
             function() { console.log("Done!"); transferInProgress = false; },
             function(e) { console.log("Failed! " + e); transferInProgress = false; }
         );
     };
     j.load(photo.url);
+}
+
+function downsampleImage(imgData) {
+    var pebbleImg = new Uint8Array(144 * 144);
+    for (var i = 0, d = 0; i < 144 * 144; i++, d += 4) {
+        pebbleImg[i] =
+            0xC0 |
+            /* R */ (imgData[d] & 0xC0) >> 2 |
+            /* G */ (imgData[d + 1] & 0xC0) >> 4 |
+            /* B */ (imgData[d + 2] & 0xC0) >> 6;
+    }
+    return pebbleImg;
+}
+
+function ditherImage(imgData) {
+    for (var i = 0; i < 144 * 144 * 4; i++) {
+        // convert in place to 6-bit color with Floyd-Steinberg dithering
+        var oldPixel = imgData[i];
+        var newPixel = oldPixel & 0xC0;
+        imgData[i] = newPixel;
+        var quantError = oldPixel - newPixel;
+        imgData[i + 4] += quantError * 7 / 16;
+        imgData[i + (143 * 4)] += quantError * (3 / 16);
+        imgData[i + (144 * 4)] += quantError * (5 / 16);
+        imgData[i + (145 * 4)] += quantError * (1 / 16);
+    }
 }
 
 Pebble.addEventListener("ready", function(e) {
