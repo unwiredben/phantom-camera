@@ -29,7 +29,7 @@ static char sTimeTaken[32];
 /* keys to send predefined position with picture request to override geolocation */
 #define LATITUDE 6
 #define LONGITUDE 7
-    
+
 /* The key used to transmit download data. Contains byte array. */
 #define NETDL_DATA 5000 
 /* The key used to start a new image transmission. Contains uint32 size */
@@ -151,7 +151,9 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
             case UPDATE_TOKEN: {
                 APP_LOG(APP_LOG_LEVEL_DEBUG, "has_instagram_token: %s",
                        tuple->value->uint8 ? "yes" : "no");
-                // FIXME - change user state depending on if a token is stored for use
+                text_layer_set_text(
+                    text_layer, 
+                    tuple->value->uint8 ? "Click!" : "Configure me!");
                 break;
             }
             case PICTURE_USER: {
@@ -247,7 +249,7 @@ static void window_load(Window *window) {
 
     text_layer = text_layer_create((GRect) { .origin = { 0, 144 }, .size = { 144, 24 } });
     text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-    text_layer_set_text(text_layer, "Click!");
+    text_layer_set_text(text_layer, "Contacting spirits...");
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
@@ -273,8 +275,6 @@ static void init(void) {
     // Need to initialize this first to make sure it is there when
     // the window_load function is called by window_stack_push.
     netdownload_initialize(download_complete_handler, gbitmap_get_data(image_bmp), 144 * 144);
-
-
 }
 
 static void deinit(void) {

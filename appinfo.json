@@ -1,5 +1,6 @@
 {
     "appKeys": {
+        "CHECK_TOKEN": 8,
         "LATITUDE": 6,
         "LONGITUDE": 7,
         "NETDL_BEGIN": 5001,
@@ -22,14 +23,14 @@
     "resources": {
         "media": [
             {
-                "file": "images/phantom.png",
-                "name": "IMAGE_PHANTOM",
-                "type": "png"
-            },
-            {
                 "file": "images/camera-28x28-color.png",
                 "menuIcon": true,
                 "name": "IMAGE_CAMERA_ICON",
+                "type": "png"
+            },
+            {
+                "file": "images/phantom.png",
+                "name": "IMAGE_PHANTOM",
                 "type": "png"
             }
         ]

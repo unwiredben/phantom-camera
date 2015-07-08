@@ -107,6 +107,10 @@ function findNearbyPhotos(pos) {
         req.onload = selectPhotos.bind(this, req);
         req.send();
     }
+    else {
+        var msg = { UPDATE_TOKEN: false };
+        Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
+    }
 }
 
 // step 3 - find candidate photos to request and resample
@@ -211,6 +215,10 @@ function processPhoto(photo) {
 
 Pebble.addEventListener("ready", function(e) {
     console.log("NetDownload JS Ready");
+    // send current access token state back to app
+    var access_token = localStorage.getItem("access_token");
+    var msg = { UPDATE_TOKEN: !!access_token };
+    Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
 });
 
 Pebble.addEventListener("showConfiguration", function(e) {
@@ -235,18 +243,7 @@ Pebble.addEventListener("webviewclosed", function(e) {
 Pebble.addEventListener("appmessage", function(e) {
     console.log("Got message: " + JSON.stringify(e));
 
-    if ('CHECK_TOKEN' in e.payload) {
-        var msg = {};
-        var access_token = localStorage.getItem("access_token");
-        if (access_token) {
-            msg.UPDATE_TOKEN = true;
-        }
-        else {
-            msg.UPDATE_TOKEN = false;
-        }
-        Pebble.sendAppMessage(msg, sendSuccess, sendFailure);
-    }
-    else if ('TAKE_PICTURE' in e.payload) {
+    if ('TAKE_PICTURE' in e.payload) {
         CHUNK_SIZE = e.payload['NETDL_CHUNK_SIZE'];
         if ('LATITUDE' in e.payload && 'LONGITUDE' in e.payload) {
             var pos = {
