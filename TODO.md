@@ -1,10 +1,25 @@
 TO DO LIST
 ----------
-
-* add option to take pictures at scenic locales
+* use action bar on initial screen
+* lock out user action until we get token verification
+* provide more download feedback
+* keep previous picture until new one starts downloading
+* reduce download time by sending 6-bit pixels instead of 8-bit
+* add option to take pictures at remote scenic locales
 * show animated ghost instead of static ghost bitmap
 * add timeline pins for five most recent pictures
 * add launch mechanism to show a recent picture
-* add animation to picture display to switch between date and user
+* make select when viewing photo go to screen showing info, "refresh", and maybe "like"
 * handle case where user de-authorizes the app
-* handle communication timeouts
+  * ```{"meta":{"error_type":"OAuthParameterException","code":400,"error_message":"The access_token provided is invalid."}}```
+* handle communication timeout on startup
+* handle communication timeout for getting geolocation
+* handle communication timeout for finding matches
+* handle communication timeout when downloading image
+
+COMPLETED
+---------
+* check for auth token at startup
+* integrate message queue management code
+
+
