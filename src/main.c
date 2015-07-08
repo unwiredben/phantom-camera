@@ -5,6 +5,7 @@ static Window *window;
 static TextLayer *text_layer;
 static BitmapLayer *bitmap_layer;
 static GBitmap *image_bmp;
+static GBitmap *phantom_bmp;
 static uint8_t *sDataBuffer = NULL;
 static uint32_t sDataBufferLen = 0;
 static char sName[32];
@@ -129,6 +130,7 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
                 if (ctx->length > sDataBufferLen)
                     ctx->length = sDataBufferLen;
                 ctx->index = 0;
+                text_layer_set_text(text_layer, "Developing...");
                 break;
             }
             case NETDL_END: {
@@ -212,8 +214,7 @@ static void netdownload_deinitialize(void) {
 
 static void take_picture() {
     // show that we are loading by showing no image
-    bitmap_layer_set_bitmap(bitmap_layer, NULL);
-    layer_set_hidden(bitmap_layer_get_layer(bitmap_layer), true);
+    bitmap_layer_set_bitmap(bitmap_layer, phantom_bmp);
     text_layer_set_text(text_layer, "Searching...");
     request_picture();
 }
@@ -225,7 +226,6 @@ static void download_complete_handler(const char *name, const char *time_taken) 
     
     /* image_bmp's data is updated, so safe to show it now */
     bitmap_layer_set_bitmap(bitmap_layer, image_bmp);
-    layer_set_hidden(bitmap_layer_get_layer(bitmap_layer), false);
     text_layer_set_text(text_layer, time_taken);
 }
 
@@ -242,7 +242,7 @@ static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
 
     bitmap_layer = bitmap_layer_create((GRect) { .origin = { 0, 0 }, .size = { 144, 144 } });
-    layer_set_hidden(bitmap_layer_get_layer(bitmap_layer), true);
+    bitmap_layer_set_bitmap(bitmap_layer, phantom_bmp);
     layer_add_child(window_layer, bitmap_layer_get_layer(bitmap_layer));
 
     text_layer = text_layer_create((GRect) { .origin = { 0, 144 }, .size = { 144, 24 } });
@@ -260,7 +260,8 @@ static void window_unload(Window *window) {
 
 static void init(void) {
     image_bmp = gbitmap_create_blank((GSize){144, 144}, GBitmapFormat8Bit);
-    
+    phantom_bmp = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_PHANTOM);
+
     window = window_create();
     window_set_window_handlers(window, (WindowHandlers) {
         .load = window_load,
@@ -278,6 +279,7 @@ static void init(void) {
 
 static void deinit(void) {
     gbitmap_destroy(image_bmp);
+    gbitmap_destroy(phantom_bmp);
     netdownload_deinitialize(); // call this to avoid 20B memory leak
     window_destroy(window);
 }
