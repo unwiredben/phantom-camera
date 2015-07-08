@@ -1,10 +1,12 @@
 ## The MIT License (MIT)
 
-Copyright © 2015 Ben Combee
+Copyright © 2015 Ben Combee (main developer)
 
 Copyright © 2014 Pebble Technology [(pebble-faces sample)](https://github.com/pebble-examples/pebble-faces)
 
 Copyright © 2012 Phil Booth [(vagueTime.js)](https://github.com/philbooth/vagueTime.js)
+
+Copyright © 2014 Matthew Tole [(js-message-queue)](https://github.com/smallstoneapps/js-message-queue)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
