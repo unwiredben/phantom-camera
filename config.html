@@ -37,6 +37,7 @@
 to find pictures to display.  Your access credentials
 are kept on your phone; no user-identifable
 information is saved on the Phantom Camera servers.</p>
+<p id="debugout"></p>
 <br>
 <div id="auth_outer" class="center-block"><a class="btn btn-primary" id="authURL" href="#">Authorize this application on Instagram</a></div>
 <div id="dismiss_outer" class="center-block"><a class="btn btn-primary" id="dismiss" href="#">Complete</a></div>
@@ -59,6 +60,7 @@ information is saved on the Phantom Camera servers.</p>
 
 	function readyHandler() {
 		// if we have the auth token in our url, return to the Pebble app
+		$("#debugout").text(location.toString());
 		var return_to = getParameterByName("return_to");
 		var access_token = getParameterByName("access_token");
 		$('#auth_outer').hide();
