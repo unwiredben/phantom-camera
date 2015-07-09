@@ -37,10 +37,8 @@
 to find pictures to display.  Your access credentials
 are kept on your phone; no user-identifable
 information is saved on the Phantom Camera servers.</p>
-<p id="debugout"></p>
 <br>
-<div id="auth_outer" class="center-block"><a class="btn btn-primary" id="authURL" href="#">Authorize this application on Instagram</a></div>
-<div id="dismiss_outer" class="center-block"><a class="btn btn-primary" id="dismiss" href="#">Complete</a></div>
+<div class="center-block"><a class="btn btn-primary" id="authURL" href="#">Authorize this application on Instagram</a></div>
 </div>
 </div>
 </div>
@@ -58,27 +56,18 @@ information is saved on the Phantom Camera servers.</p>
 		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 	}
 
-	function readyHandler() {
+	$(document).ready(function() {
 		// if we have the auth token in our url, return to the Pebble app
-		$("#debugout").text(location.toString() + ' ' + (Date.now() % 1000));
 		var return_to = getParameterByName("return_to");
 		var access_token = getParameterByName("access_token");
-		$('#auth_outer').hide();
-		$('#dismiss_outer').hide();
 		if (access_token) {
 			return_to = return_to || "pebblejs://close#";
 			console.log("nav to " + return_to + access_token);
-			$('#dismiss').prop('href', return_to + access_token);
-			$('#auth_outer').hide();
-			$('#dismiss_outer').show();
 			document.location = return_to + access_token;
 		}
 		else if (getParameterByName("error")) {
 			return_to = return_to || "pebblejs://close#";
 			console.log("authentication failed");
-			$('#dismiss').prop('href', return_to);
-			$('#auth_outer').hide();
-			$('#dismiss_outer').show();
 			document.location = return_to;
 		}
 		else {
@@ -91,12 +80,9 @@ information is saved on the Phantom Camera servers.</p>
 				auth_url += "?return_to=" + return_to;
 			}
 			console.log(auth_url);
-			$('#auth_outer').show();
 			$('#authURL').prop('href', auth_url);
 		}
-	}
-	$(document).ready(readyHandler);
-	window.onhashchange = readyHandler;
+	});
 </script>
 </body>
 </html>
