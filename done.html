@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+	<title>Phantom Camera Configuration</title>
+
+	<!-- Bootstrap -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+	<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 9]>
+	<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+	<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+	<![endif]-->
+
+	<style type="text/css">
+	body {
+		padding-top: 20px;
+		padding-bottom: 20px;
+		background-color: #414E4C;
+	}
+	.container {
+		padding: 30px;
+		background-color: white;
+	}
+	</style>	
+</head>
+<body>
+<div class="container">
+<div class="row">
+<div class="col-md-12">
+<p>Phantom Camera needs access to your Instagram account
+to find pictures to display.  Your access credentials
+are kept on your phone; no user-identifable
+information is saved on the Phantom Camera servers.</p>
+<p id="debugout"></p>
+<br>
+<div id="auth_outer" class="center-block"><a class="btn btn-primary" id="authURL" href="#">Authorize this application on Instagram</a></div>
+<div id="dismiss_outer" class="center-block"><a class="btn btn-primary" id="dismiss" href="#">Complete</a></div>
+</div>
+</div>
+</div>
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script>
+
+	function getParameterByName(name) {
+		name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+		var regex = new RegExp("[\\?&#]" + name + "=([^&#]*)"),
+		results = regex.exec(location.search + location.hash);
+		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+	}
+
+	function readyHandler() {
+		// if we have the auth token in our url, return to the Pebble app
+		$("#debugout").text(location.toString() + ' ' + (Date.now() % 1000));
+		var return_to = getParameterByName("return_to");
+		var access_token = getParameterByName("access_token");
+		$('#auth_outer').hide();
+		$('#dismiss_outer').hide();
+		if (access_token) {
+			return_to = return_to || "pebblejs://close#";
+			console.log("nav to " + return_to + access_token);
+			$('#dismiss').prop('href', return_to + access_token);
+			$('#auth_outer').hide();
+			$('#dismiss_outer').show();
+			document.location = return_to + access_token;
+		}
+		else if (getParameterByName("error")) {
+			return_to = return_to || "pebblejs://close#";
+			console.log("authentication failed");
+			$('#dismiss').prop('href', return_to);
+			$('#auth_outer').hide();
+			$('#dismiss_outer').show();
+			document.location = return_to;
+		}
+		else {
+			var auth_url =
+				"https://instagram.com/oauth/authorize/?" + 
+				"client_id=097438c982f1424e8370cd509d75321f&" +
+				"response_type=token&" +
+				"redirect_uri=http://combee.net/phantom-camera/done.html";
+			if (return_to) {
+				auth_url += "?return_to=" + return_to;
+			}
+			console.log(auth_url);
+			$('#auth_outer').show();
+			$('#authURL').prop('href', auth_url);
+		}
+	}
+	$(document).ready(readyHandler);
+	window.onhashchange = readyHandler;
+</script>
+</body>
+</html>
