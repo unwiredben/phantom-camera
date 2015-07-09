@@ -57,7 +57,7 @@ information is saved on the Phantom Camera servers.</p>
 		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 	}
 
-	$(document).ready(function() {
+	function readyHandler() {
 		// if we have the auth token in our url, return to the Pebble app
 		var return_to = getParameterByName("return_to");
 		var access_token = getParameterByName("access_token");
@@ -92,7 +92,9 @@ information is saved on the Phantom Camera servers.</p>
 			$('#auth_outer').show();
 			$('#authURL').prop('href', auth_url);
 		}
-	});
+	}
+	$(document).ready(readyHandler);
+	window.onhashchange = readyHandler;
 </script>
 </body>
 </html>
