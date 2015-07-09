@@ -10,6 +10,7 @@ static uint8_t *sDataBuffer = NULL;
 static uint32_t sDataBufferLen = 0;
 static char sName[32];
 static char sTimeTaken[32];
+static bool sIsPacked;
 
 /* The key used to indicate Instagram token state. UInt8 as boolean */
 #define UPDATE_TOKEN 1
@@ -30,6 +31,9 @@ static char sTimeTaken[32];
 #define LATITUDE 6
 #define LONGITUDE 7
 
+/* if set, bitmap is using 6-bit pixels, packed 4 pixels to 3 bytes */
+#define PACKED_IMG 8
+    
 /* The key used to transmit download data. Contains byte array. */
 #define NETDL_DATA 5000 
 /* The key used to start a new image transmission. Contains uint32 size */
@@ -101,6 +105,17 @@ static void request_picture(void) {
     app_message_outbox_send();
 }
 
+// unpacked: --AAAAA --BBBBBB --CCCCCC --DDDDDD
+//   packed: AAAAAABB BBBBCCCC CCDDDDDD
+static void unpackImage(uint8_t *data, uint32_t packedLength) {
+    for (int32_t i = packedLength - 3, j = packedLength / 3 * 4 - 4; i >= 0; i -= 3, j -= 4) {
+        data[j + 3] = 0xC0 | (data[i + 2] & 0x3F);
+        data[j + 2] = 0xC0 | ((data[i + 2] & 0xC0) >> 6) | ((data[i + 1] & 0x0F) << 2);
+        data[j + 1] = 0xC0 | ((data[i + 1] & 0xF0) >> 4) | ((data[i] & 0x03) << 4);
+        data[j]     = 0xC0 | ((data[i] & 0xFC) >> 2);
+    }
+}
+    
 static void netdownload_receive(DictionaryIterator *iter, void *context) {
     NetDownloadContext *ctx = (NetDownloadContext*) context;
 
@@ -133,9 +148,16 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
                 text_layer_set_text(text_layer, "Developing...");
                 break;
             }
+            case PACKED_IMG: {
+                sIsPacked = tuple->value->uint8;
+                break;
+            }
             case NETDL_END: {
                 if (ctx->data && ctx->length > 0 && ctx->index > 0) {
                     printf("Received complete file=%" PRIu32, ctx->length);
+                    if (sIsPacked) {
+                        unpackImage(ctx->data, ctx->length);
+                    }
                     ctx->callback(sName, sTimeTaken);
     
                     // We have transfered ownership of this memory to the app. Make sure we dont free it.

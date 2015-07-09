@@ -4,6 +4,8 @@
 /* set minimum based on pebble.h's APP_MESSAGE_INBOX_MINIMUM */
 var CHUNK_SIZE = 124;
 
+var IMG_WIDTH = 144;
+
 var sendSuccess = function(e) {
     console.log("sendSuccess, e: " + JSON.stringify(e));
     //console.log(
@@ -37,6 +39,8 @@ function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
         }
     };
 
+    bytes = packImage(bytes);
+    
     // This function sends chunks of data.
     var sendChunk = function(start) {
         var txbuf = Array.prototype.slice.call(bytes, start, start + chunkSize);
@@ -68,11 +72,12 @@ function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
 
     // Let the pebble app know how much data we want to send.
     console.log("Sending NETDL_BEGIN, bytes.length = " + bytes.length);
-    MessageQueue.sendAppMessage({"NETDL_BEGIN": bytes.length },
-                          function (e) {
-                              // success - start sending
-                              sendChunk(0);
-                          }, failure);
+    MessageQueue.sendAppMessage(
+        {"NETDL_BEGIN": bytes.length, "PACKED_IMG": 1 },
+        function (e) {
+            // success - start sending
+            sendChunk(0);
+        }, failure);
 }
 
 // step 1 -- get current geolocation
@@ -186,12 +191,10 @@ function processPhoto(photo) {
         var w = j.width, h = j.height;
         console.log("decoded image, size: " + w + "x" + h);
         
-        // produce PNG using 144x144 center crop of picture
-        // post PNG data back to watch app
         var img = {
-            width: 144,
-            height: 144,
-            data: new Uint8ClampedArray(144 * 144 * 4)
+            width: IMG_WIDTH,
+            height: IMG_WIDTH,
+            data: new Uint8ClampedArray(IMG_WIDTH * IMG_WIDTH * 4)
         };
         j.copyToImageData(img);
 
@@ -208,9 +211,23 @@ function processPhoto(photo) {
     j.load(photo.url);
 }
 
+function ditherImage(imgData) {
+    for (var i = 0; i < IMG_WIDTH * IMG_WIDTH * 4; i++) {
+        // convert in place to 6-bit color with Floyd-Steinberg dithering
+        var oldPixel = imgData[i];
+        var newPixel = oldPixel & 0xC0;
+        imgData[i] = newPixel;
+        var quantError = oldPixel - newPixel;
+        imgData[i + 4] += quantError * 7 / 16;
+        imgData[i + ((IMG_WIDTH - 1) * 4)] += quantError * (3 / 16);
+        imgData[i + (IMG_WIDTH * 4)] += quantError * (5 / 16);
+        imgData[i + ((IMG_WIDTH + 1) * 4)] += quantError * (1 / 16);
+    }
+}
+
 function downsampleImage(imgData) {
-    var pebbleImg = new Uint8Array(144 * 144);
-    for (var i = 0, d = 0; i < 144 * 144; i++, d += 4) {
+    var pebbleImg = new Uint8Array(IMG_WIDTH * IMG_WIDTH);
+    for (var i = 0, d = 0; i < IMG_WIDTH * IMG_WIDTH; i++, d += 4) {
         pebbleImg[i] =
             0xC0 |
             /* R */ (imgData[d] & 0xC0) >> 2 |
@@ -220,18 +237,16 @@ function downsampleImage(imgData) {
     return pebbleImg;
 }
 
-function ditherImage(imgData) {
-    for (var i = 0; i < 144 * 144 * 4; i++) {
-        // convert in place to 6-bit color with Floyd-Steinberg dithering
-        var oldPixel = imgData[i];
-        var newPixel = oldPixel & 0xC0;
-        imgData[i] = newPixel;
-        var quantError = oldPixel - newPixel;
-        imgData[i + 4] += quantError * 7 / 16;
-        imgData[i + (143 * 4)] += quantError * (3 / 16);
-        imgData[i + (144 * 4)] += quantError * (5 / 16);
-        imgData[i + (145 * 4)] += quantError * (1 / 16);
+// unpacked: --AAAAA --BBBBBB --CCCCCC --DDDDDD
+//   packed: AAAAAABB BBBBCCCC CCDDDDDD
+function packImage(imgData) {
+    var packedImg = new Uint8Array(IMG_WIDTH * IMG_WIDTH * 3 / 4);
+    for (var i = 0, j = 0; i < IMG_WIDTH * IMG_WIDTH * 4; i += 4, j += 3) {
+        packedImg[j] = ((imgData[i] & 0x3F) << 2)     | ((imgData[i + 1] & 0x30) >> 4);
+        packedImg[j + 1] = ((imgData[i + 1] & 0x0F) << 4) | ((imgData[i + 2] & 0x3C) >> 2);
+        packedImg[j + 2] = ((imgData[i + 2] & 0x03) << 6) | (imgData[i + 3] & 0x3F);
     }
+    return packedImg;
 }
 
 Pebble.addEventListener("ready", function(e) {
