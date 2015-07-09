@@ -60,7 +60,7 @@ information is saved on the Phantom Camera servers.</p>
 
 	function readyHandler() {
 		// if we have the auth token in our url, return to the Pebble app
-		$("#debugout").text(location.toString());
+		$("#debugout").text(location.toString() + ' ' + (Date.now() % 1000));
 		var return_to = getParameterByName("return_to");
 		var access_token = getParameterByName("access_token");
 		$('#auth_outer').hide();
