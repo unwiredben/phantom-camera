@@ -145,6 +145,7 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
                 if (ctx->length > sDataBufferLen)
                     ctx->length = sDataBufferLen;
                 ctx->index = 0;
+                bitmap_layer_set_bitmap(bitmap_layer, phantom_bmp);
                 text_layer_set_text(text_layer, "Developing...");
                 break;
             }
@@ -238,7 +239,6 @@ static void netdownload_deinitialize(void) {
 
 static void take_picture() {
     // show that we are loading by showing no image
-    bitmap_layer_set_bitmap(bitmap_layer, phantom_bmp);
     text_layer_set_text(text_layer, "Searching...");
     request_picture();
 }

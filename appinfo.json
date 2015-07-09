@@ -23,9 +23,9 @@
     "resources": {
         "media": [
             {
-                "file": "images/camera-28x28-color.png",
+                "file": "images/phantom_28x28.png",
                 "menuIcon": true,
-                "name": "IMAGE_CAMERA_ICON",
+                "name": "IMAGE_PHANTOM_ICON",
                 "type": "png"
             },
             {
@@ -41,7 +41,7 @@
         "basalt"
     ],
     "uuid": "40188926-7314-4eea-81de-2a7fcb9f7499",
-    "versionLabel": "0.2",
+    "versionLabel": "1.0",
     "watchapp": {
         "watchface": false
     }
