@@ -4,7 +4,6 @@ TO DO LIST
 * lock out user action until we get token verification
 * provide more download feedback
 * keep previous picture until new one starts downloading
-* reduce download time by sending 6-bit pixels instead of 8-bit
 * add option to take pictures at remote scenic locales
 * show animated ghost instead of static ghost bitmap
 * add timeline pins for five most recent pictures
@@ -21,5 +20,6 @@ COMPLETED
 ---------
 * check for auth token at startup
 * integrate message queue management code
+* reduce download time by sending 6-bit pixels instead of 8-bit
 
 
