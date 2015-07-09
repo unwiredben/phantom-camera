@@ -14,7 +14,7 @@
    inkscape:version="0.91 r13725"
    sodipodi:docname="phantom.svg"
    viewBox="0,0,144,144"
-   inkscape:export-filename="C:\Users\bcombee\git\phantom-camera\phantom.png"
+   inkscape:export-filename="C:\Users\bcombee\git\phantom-camera\resources\images\phantom.png"
    inkscape:export-xdpi="90"
    inkscape:export-ydpi="90">
   <metadata
@@ -25,7 +25,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -40,12 +40,12 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1538"
-     inkscape:window-height="878"
+     inkscape:window-width="1858"
+     inkscape:window-height="1178"
      id="namedview11"
      showgrid="false"
      inkscape:zoom="3.6375"
-     inkscape:cx="58.132768"
+     inkscape:cx="-24.066544"
      inkscape:cy="79.588909"
      inkscape:window-x="54"
      inkscape:window-y="-8"
@@ -57,42 +57,51 @@
      transform="translate(0,-336)">
     <title
        id="title6">Layer 1</title>
-    <path
-       id="svg_6"
-       d="m 21.714702,464.81587 9.962966,-89.66666 20.756168,-26.5679 34.040126,0 20.756178,24.07716 10.7932,93.8179 c 0,0 -20.756166,-18.26543 -24.907404,-15.77469 -4.151238,2.49073 -22.416669,16.60494 -22.416669,16.60494 0,0 -24.07716,-19.09568 -24.07716,-19.09568 0,0 -24.907405,16.60493 -24.907405,16.60493 z"
-       style="fill:#ffffff;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;fill-opacity:1"
-       inkscape:connector-curvature="0" />
-    <circle
-       id="svg_7"
-       r="9.9974976"
-       cy="382.62143"
-       cx="62.396797"
-       style="fill:none;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none" />
-    <circle
-       id="svg_8"
-       r="9.9974976"
-       cy="382.62143"
-       cx="87.304207"
-       style="fill:none;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none" />
-    <rect
-       style="fill:#ffffff;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none"
-       id="rect3345"
-       width="45.649319"
-       height="24.650631"
-       x="76.731819"
-       y="407.75699" />
-    <circle
-       style="fill:#ffffff;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;opacity:0.99"
-       id="path3347"
-       cx="99.556465"
-       cy="420.08231"
-       r="7.72" />
-    <rect
-       style="fill:#ffffff;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none"
-       id="rect3349"
-       width="16.837797"
-       height="6.772583"
-       x="91.137573"
-       y="400.98865" />
+    <g
+       id="g4141">
+      <path
+         sodipodi:nodetypes="ccccccsccc"
+         inkscape:connector-curvature="0"
+         style="fill:#8080ff;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none"
+         d="m 23.619684,463.93641 9.962966,-89.66666 20.756168,-26.5679 34.040126,0 20.756176,24.07716 10.7932,93.8179 c 0,0 -18.83177,-19.36509 -22.983003,-16.87435 -4.151238,2.49073 -24.341068,17.7046 -24.341068,17.7046 l -22.70259,-18.82077 z"
+         id="svg_6" />
+      <circle
+         style="fill:#ffffff;stroke:#000000;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none"
+         cx="64.301781"
+         cy="381.74197"
+         r="9.9974976"
+         id="svg_7" />
+      <circle
+         style="fill:#ffffff;stroke:#000000;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none"
+         cx="89.20919"
+         cy="381.74197"
+         r="9.9974976"
+         id="svg_8" />
+      <g
+         style="fill:#ffffff;fill-opacity:1;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none"
+         transform="translate(-1.668901,2.96934)"
+         id="g4148">
+        <rect
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none"
+           id="rect3345"
+           width="45.649319"
+           height="24.650631"
+           x="76.731819"
+           y="407.75699" />
+        <circle
+           style="opacity:0.98999999;fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none"
+           id="path3347"
+           cx="99.556465"
+           cy="420.08231"
+           r="7.7199998" />
+        <rect
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none"
+           id="rect3349"
+           width="16.837797"
+           height="6.772583"
+           x="91.137573"
+           y="400.98865" />
+      </g>
+    </g>
   </g>
 </svg>
