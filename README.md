@@ -9,4 +9,4 @@ Licensed under the MIT License, see LICENSE for details.
 [![Available on the Pebble App Store](http://pblweb.com/badge/559ccfe7541f0c2efa000003/black/small)](https://apps.getpebble.com/en_US/application/559ccfe7541f0c2efa000003)
 
 ![Screenshot - main screen](screenshots/screenshot.png)
-![Screenshot - captured image](screenshots/screenshot-2.png)
+![Screenshot - captured image](screenshots/screenshot2.png)
