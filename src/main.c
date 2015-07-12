@@ -8,6 +8,7 @@ static GBitmap *image_bmp;
 static GBitmap *phantom_bmp;
 static uint8_t *sDataBuffer = NULL;
 static uint32_t sDataBufferLen = 0;
+static char sErrorMsg[32];
 static char sName[32];
 static char sTimeTaken[32];
 static bool sIsPacked;
@@ -33,6 +34,9 @@ static bool sIsPacked;
 
 /* if set, bitmap is using 6-bit pixels, packed 4 pixels to 3 bytes */
 #define PACKED_IMG 8
+
+/* string with error message from JS side, usually a network failure */
+#define ERROR 9
     
 /* The key used to transmit download data. Contains byte array. */
 #define NETDL_DATA 5000 
@@ -193,6 +197,13 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
             }
             case PICTURE_TEXT: {
                 APP_LOG(APP_LOG_LEVEL_DEBUG, "text: %s", tuple->value->cstring);
+                break;
+            }
+            case ERROR: {
+                APP_LOG(APP_LOG_LEVEL_ERROR, "error received: %s", tuple->value->cstring);
+                strncpy(sErrorMsg, tuple->value->cstring, sizeof(sErrorMsg));
+                sErrorMsg[sizeof(sErrorMsg) - 1] = 0;
+                text_layer_set_text(text_layer, sErrorMsg);
                 break;
             }
             default: {

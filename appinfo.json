@@ -1,5 +1,6 @@
 {
     "appKeys": {
+        "ERROR": 9,
         "LATITUDE": 6,
         "LONGITUDE": 7,
         "NETDL_BEGIN": 5001,

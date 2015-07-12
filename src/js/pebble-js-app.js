@@ -21,6 +21,11 @@ var sendFailure = function(e) {
     //    ' Error is: ' + e.error.message);
 };
 
+var sendError = function(errorMsg) {
+    var msg = { ERROR: errorMsg };
+    MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
+};
+
 var transferInProgress = false;
 
 function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
@@ -95,7 +100,7 @@ function takePicture() {
 
 function locationError(err) {
     console.log('location error (' + err.code + '): ' + err.message);
-    // FIXME: send "can't search" message back to watch
+    sendError("No geolocation!");
 }
 
 // step 2 - make API call to Instagram to get nearby pictures
@@ -120,54 +125,60 @@ function findNearbyPhotos(pos) {
 
 // step 3 - find candidate photos to request and resample
 function selectPhotos(req, e) {
-    if (req.readyState == 4 && req.status == 200) {
+    if (req.readyState == 4) {
         var response = JSON.parse(req.responseText);
-        var data = response.data;
-        var candidates = [];
-        var i, entry;
-        for (i in data) {
-            entry = data[i];
-            if (entry.type == "image" &&
-                entry.images &&
-                entry.images.thumbnail &&
-                entry.images.thumbnail.url &&
-                entry.user &&
-                entry.user.username &&
-                entry.created_time) {
-                candidates.push({
-                    // url: entry.images.thumbnail.url,
-                    url: entry.images.low_resolution.url,
-                    username: entry.user.username,
-                    created_time: entry.created_time
-                });
-                //console.log("url: " + entry.images.thumbnail.url +
-                //            ", user: " + entry.user.username +
-                //            ", time: " + entry.created_time);
-            }
-        }
-
-        // process candidates list, pick most recent one to fetch
-        if (candidates.length > 0) {
-            var latestEntry = {
-                created_time: 0
-            };
-            for (i in candidates) {
-                entry = candidates[i];
-                if (entry.created_time > latestEntry.created_time) {
-                    latestEntry = entry;
+        if (req.status == 200) {
+            var data = response.data;
+            var candidates = [];
+            var i, entry;
+            for (i in data) {
+                entry = data[i];
+                if (entry.type == "image" &&
+                    entry.images &&
+                    entry.images.thumbnail &&
+                    entry.images.thumbnail.url &&
+                    entry.user &&
+                    entry.user.username &&
+                    entry.created_time) {
+                    candidates.push({
+                        // url: entry.images.thumbnail.url,
+                        url: entry.images.low_resolution.url,
+                        username: entry.user.username,
+                        created_time: entry.created_time
+                    });
+                    //console.log("url: " + entry.images.thumbnail.url +
+                    //            ", user: " + entry.user.username +
+                    //            ", time: " + entry.created_time);
                 }
             }
-            processPhoto(latestEntry);
-            // possibly post other candidates to timeline in future version
+
+            // process candidates list, pick most recent one to fetch
+            if (candidates.length > 0) {
+                var latestEntry = {
+                    created_time: 0
+                };
+                for (i in candidates) {
+                    entry = candidates[i];
+                    if (entry.created_time > latestEntry.created_time) {
+                        latestEntry = entry;
+                    }
+                }
+                processPhoto(latestEntry);
+                // possibly post other candidates to timeline in future version
+            }
+            else {
+                console.log("no suitable candidates");
+                sendError("Nothing found!");
+            }
         }
-        else {
-            console.log("no suitable candidates");
-            // FIXME: return error to user
+        else if (response && response.meta && response.meta.error_type == "OAuthAccessTokenException") {
+            // lost authentication
+            console.log("lost authentication");
+            localStorage.removeItem("access_token");
+            MessageQueue.sendAppMessage({ UPDATE_TOKEN: 0 }, sendSuccess, sendFailure);
+        } else {
+            sendError("No response!");
         }
-    }
-    else {
-        console.log('Error');
-        // FIXME - indicate error to user on watch
     }
 }
 
@@ -202,6 +213,7 @@ function processPhoto(photo) {
         ditherImage(img.data);
         var pebbleImg = downsampleImage(img.data);
 
+        transferInProgress = true;
         transferImageBytes(
             pebbleImg, CHUNK_SIZE,
             function() { console.log("Done!"); transferInProgress = false; },
@@ -250,7 +262,7 @@ function packImage(imgData) {
 }
 
 Pebble.addEventListener("ready", function(e) {
-    console.log("NetDownload JS Ready");
+    console.log("JS ready");
     // send current access token state back to app
     var access_token = localStorage.getItem("access_token");
     var msg = { UPDATE_TOKEN: access_token ? 1 : 0 };
@@ -270,7 +282,7 @@ Pebble.addEventListener("webviewclosed", function(e) {
     }
     else {
         console.log("no access token received");
-        localStorage.setItem("access_token", null);
+        localStorage.removeItem("access_token");
         msg.UPDATE_TOKEN = 0;
     }
     MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
