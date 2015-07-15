@@ -1,6 +1,5 @@
 TO DO LIST
 ----------
-* provide more download feedback
 * lock out user action until we get token verification
 * show animated ghost instead of static ghost bitmap
 * handle communication timeout on startup
@@ -10,16 +9,16 @@ TO DO LIST
 
 FUTURE FEATURES
 ---------------
-* use action bar on initial screen
-* keep previous picture until new one starts downloading
-* add option to take pictures at remote scenic locales
+* better label buttons on initial screen
 * add timeline pins for five most recent pictures
 * add launch mechanism to show a recent picture
-* make select when viewing photo go to screen showing info, "refresh", and maybe "like"
 * update jpg.js code with latest from https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js, make PR to notmasteryet's repo with updates
 
 COMPLETED
 ---------
+* add ability to get pictures from popular and personal feeds
+* keep previous picture until new one starts downloading
+* provide more download feedback
 * check for auth token at startup
 * integrate message queue management code
 * reduce download time by sending 6-bit pixels instead of 8-bit
