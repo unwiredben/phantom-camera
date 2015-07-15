@@ -11,7 +11,46 @@ static uint32_t sDataBufferLen = 0;
 static char sErrorMsg[32];
 static char sName[32];
 static char sTimeTaken[32];
+static char sWhere[32];
 static bool sIsPacked;
+
+#define MESSAGE_INTERVAL 5000
+static const char *sMessages[4];
+static uint8_t sNextMessage = 0;
+static AppTimer *sMessageTimer = NULL;
+
+static void show_next_message(void *ctx) {
+    int8_t currentMessage = sNextMessage;
+    text_layer_set_text(text_layer, sMessages[currentMessage]);
+    for (int8_t i = 0; i < 4; ++i) {
+        sNextMessage = (sNextMessage + 1) % 4;
+        if (sMessages[sNextMessage] != NULL)
+            break;
+    }        
+    /* if there are more messages, schedule them for the future */
+    if (currentMessage == sNextMessage) {
+        if (sMessageTimer) {
+            app_timer_cancel(sMessageTimer);
+            sMessageTimer = NULL;
+        }
+    }
+    else {
+        sMessageTimer = app_timer_register(MESSAGE_INTERVAL, show_next_message, NULL);
+    }
+}
+
+static void show_messages(const char *msg1, const char *msg2, const char *msg3, const char *msg4) {
+    sNextMessage = 0;
+    sMessages[0] = msg1;
+    sMessages[1] = msg2;
+    sMessages[2] = msg3;
+    sMessages[3] = msg4;
+    show_next_message(NULL);
+}
+
+static void show_message(const char *msg) {
+    show_messages(msg, NULL, NULL, NULL);
+}
 
 /* The key used to indicate Instagram token state. UInt8 as boolean */
 #define UPDATE_TOKEN 1
@@ -19,6 +58,11 @@ static bool sIsPacked;
 /* The key used to indicate that you should grab the nearest picture, UInt8 - ignored */
 #define TAKE_PICTURE 2
 
+/* values to send with TAKE_PICTURE to indicate which one to take */
+#define PIC_NEARBY 0
+#define PIC_POPULAR 1
+#define PIC_FRIENDS 2
+    
 /* key for username associated with incoming picture, string */
 #define PICTURE_USER 3
 
@@ -37,7 +81,7 @@ static bool sIsPacked;
 
 /* string with error message from JS side, usually a network failure */
 #define ERROR 9
-    
+   
 /* The key used to transmit download data. Contains byte array. */
 #define NETDL_DATA 5000 
 /* The key used to start a new image transmission. Contains uint32 size */
@@ -50,7 +94,7 @@ static bool sIsPacked;
 /* The key used to request a PBI */
 #define NETDL_URL NETDL_DATA + 4
 
-typedef void (*NetDownloadCallback)(const char *name, const char *timeTaken);
+typedef void (*NetDownloadCallback)(void);
 
 typedef struct {
   /* size of the data buffer allocated */
@@ -98,14 +142,16 @@ static void netdownload_destroy_context(NetDownloadContext *ctx) {
     free(ctx);
 }
 
-static void request_picture(void) {
+static void take_picture(int type) {
+    app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
+    
     DictionaryIterator *outbox;
     app_message_outbox_begin(&outbox);
     // Tell the javascript how big we want each chunk of data: max possible size - dictionary overhead with one Tuple in it.
     uint32_t chunk_size = app_message_inbox_size_maximum() - dict_calc_buffer_size(1);
     dict_write_uint32(outbox, NETDL_CHUNK_SIZE, chunk_size);
     // include request token
-    dict_write_int8(outbox, TAKE_PICTURE, 0);
+    dict_write_int8(outbox, TAKE_PICTURE, type);
     app_message_outbox_send();
 }
 
@@ -150,7 +196,7 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
                     ctx->length = sDataBufferLen;
                 ctx->index = 0;
                 bitmap_layer_set_bitmap(bitmap_layer, phantom_bmp);
-                text_layer_set_text(text_layer, "Developing...");
+                show_message("Developing...");
                 break;
             }
             case PACKED_IMG: {
@@ -158,12 +204,13 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
                 break;
             }
             case NETDL_END: {
+                app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
                 if (ctx->data && ctx->length > 0 && ctx->index > 0) {
                     printf("Received complete file=%" PRIu32, ctx->length);
                     if (sIsPacked) {
                         unpackImage(ctx->data, ctx->length);
                     }
-                    ctx->callback(sName, sTimeTaken);
+                    ctx->callback();
     
                     // We have transfered ownership of this memory to the app. Make sure we dont free it.
                     // (see netdownload_destroy for cleanup)
@@ -178,9 +225,13 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
             case UPDATE_TOKEN: {
                 APP_LOG(APP_LOG_LEVEL_DEBUG, "has_instagram_token: %s",
                        tuple->value->uint8 ? "yes" : "no");
-                text_layer_set_text(
-                    text_layer, 
-                    tuple->value->uint8 ? "Click!" : "Configure me!");
+                if (tuple->value->uint8) {
+                    show_messages("Select: Nearby", "Up: Popular", "Down: My Feed", NULL);
+                }
+                else {
+                    show_message("Configure me!");
+                }
+                app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
                 break;
             }
             case PICTURE_USER: {
@@ -203,11 +254,13 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
                 APP_LOG(APP_LOG_LEVEL_ERROR, "error received: %s", tuple->value->cstring);
                 strncpy(sErrorMsg, tuple->value->cstring, sizeof(sErrorMsg));
                 sErrorMsg[sizeof(sErrorMsg) - 1] = 0;
-                text_layer_set_text(text_layer, sErrorMsg);
+                show_message(sErrorMsg);
+                app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
                 break;
             }
             default: {
                 APP_LOG(APP_LOG_LEVEL_WARNING, "Unknown key in dict: %" PRIo32, tuple->key);
+                app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
                 break;
             }
         }
@@ -248,29 +301,44 @@ static void netdownload_deinitialize(void) {
     app_message_set_context(NULL);
 }
 
-static void take_picture() {
-    // show that we are loading by showing no image
-    text_layer_set_text(text_layer, "Searching...");
-    request_picture();
-}
-
-static void download_complete_handler(const char *name, const char *time_taken) {
+static void download_complete_handler(void) {
     /* let user know download was complete by buzzing and turning on light */
     vibes_short_pulse();
     light_enable_interaction();
     
     /* image_bmp's data is updated, so safe to show it now */
     bitmap_layer_set_bitmap(bitmap_layer, image_bmp);
-    text_layer_set_text(text_layer, time_taken);
+    show_messages(sTimeTaken, sName, NULL, NULL);
 }
 
 static void click_handler(ClickRecognizerRef recognizer, void *context) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "main - select");
-    take_picture();
+    switch (click_recognizer_get_button_id(recognizer)) {
+        case BUTTON_ID_UP: {
+            show_message("Discovering...");
+            take_picture(PIC_POPULAR);
+            break;
+        }
+        case BUTTON_ID_SELECT: {
+            show_message("Searching...");
+            take_picture(PIC_NEARBY);
+            break;
+        }
+        case BUTTON_ID_DOWN: {
+            show_message("Following...");
+            take_picture(PIC_FRIENDS);
+            break;
+        }
+        /* other buttons aren't handled */
+        default: {
+            break;
+        }
+    }
 }
 
 static void click_config_provider(void *context) {
+    window_single_click_subscribe(BUTTON_ID_UP,     click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, click_handler);
+    window_single_click_subscribe(BUTTON_ID_DOWN,   click_handler);
 }
 
 static void window_load(Window *window) {
@@ -282,8 +350,8 @@ static void window_load(Window *window) {
 
     text_layer = text_layer_create((GRect) { .origin = { 0, 144 }, .size = { 144, 24 } });
     text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-    text_layer_set_text(text_layer, "Contacting spirits...");
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
+    show_message("Contacting spirits...");
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
     window_set_click_config_provider(window, click_config_provider);
@@ -308,6 +376,9 @@ static void init(void) {
     // Need to initialize this first to make sure it is there when
     // the window_load function is called by window_stack_push.
     netdownload_initialize(download_complete_handler, gbitmap_get_data(image_bmp), 144 * 144);
+
+    // get ready message ASAP
+    app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 }
 
 static void deinit(void) {

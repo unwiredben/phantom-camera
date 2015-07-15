@@ -1,24 +1,40 @@
 /* jshint sub: true */
 /* globals MessageQueue, JpegImage, vagueTime */
 
+(function() {
+    
+"use strict";
+
+/* constants for kind of picture to take */
+var PIC_NEARBY = 0, PIC_POPULAR = 1, PIC_FRIENDS = 2;
+    
 /* set minimum based on pebble.h's APP_MESSAGE_INBOX_MINIMUM */
 var CHUNK_SIZE = 124;
 
+/* width of Pebble screen */
 var IMG_WIDTH = 144;
+    
+/* last image to send to watch, used to avoid re-send */    
+var lastImgUrl = "";
+
+/* flag used to reject search */
+var transferInProgress = false;
+             
+function timeLog(msg) {
+    console.log(new Date().toISOString() + ": " + msg);
+}
 
 var sendSuccess = function(e) {
-    console.log("sendSuccess, e: " + JSON.stringify(e));
-    //console.log(
-    //    'Successfully delivered message with transactionId=' +
-    //    e.data.transactionId);
+    timeLog(
+        'Successfully delivered message with transactionId=' +
+        e.data.transactionId);
 };
 
 var sendFailure = function(e) {
-    console.log("sendFailure, e: " + JSON.stringify(e));
-    //console.log(
-    //    'Unable to deliver message with transactionId=' +
-    //    e.data.transactionId +
-    //    ' Error is: ' + e.error.message);
+    timeLog(
+        'Unable to deliver message with transactionId=' +
+        e.data.transactionId +
+        ' Error is: ' + e.error.message);
 };
 
 var sendError = function(errorMsg) {
@@ -26,19 +42,14 @@ var sendError = function(errorMsg) {
     MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
 };
 
-var transferInProgress = false;
-
 function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
-    console.log("transferImageBytes, chunkSize" + chunkSize);
-    var retries = 0;
+    timeLog("transferImageBytes, chunkSize" + chunkSize);
     var success = function() {
-        console.log("Success cb=" + successCb);
         if (successCb !== undefined) {
             successCb();
         }
     };
     var failure = function(e) {
-        console.log("Failure cb=" + failureCb);
         if (failureCb !== undefined) {
             failureCb(e);
         }
@@ -49,7 +60,7 @@ function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
     // This function sends chunks of data.
     var sendChunk = function(start) {
         var txbuf = Array.prototype.slice.call(bytes, start, start + chunkSize);
-        console.log("Sending " + txbuf.length + " bytes at offset " + start);
+        timeLog("Sending " + txbuf.length + " bytes at offset " + start);
         MessageQueue.sendAppMessage(
             { "NETDL_DATA": txbuf },
             function(e) {
@@ -62,21 +73,14 @@ function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
                     MessageQueue.sendAppMessage({"NETDL_END": "done" }, success, failure);
                 }
             },
-            // Failed to send message - Retry a few times.
             function (e) {
-                if (retries++ < 3) {
-                    console.log("Got a nack for chunk #" + start + " - Retry...");
-                    sendChunk(start);
-                }
-                else {
-                    failure(e);
-                }
+                failure(e);
             }
         );
     };
 
     // Let the pebble app know how much data we want to send.
-    console.log("Sending NETDL_BEGIN, bytes.length = " + bytes.length);
+    timeLog("Sending NETDL_BEGIN, bytes.length = " + bytes.length);
     MessageQueue.sendAppMessage(
         {"NETDL_BEGIN": bytes.length, "PACKED_IMG": 1 },
         function (e) {
@@ -99,22 +103,54 @@ function takePicture() {
 }
 
 function locationError(err) {
-    console.log('location error (' + err.code + '): ' + err.message);
+    timeLog('location error (' + err.code + '): ' + err.message);
     sendError("No geolocation!");
 }
 
 // step 2 - make API call to Instagram to get nearby pictures
 function findNearbyPhotos(pos) {
-    console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
+    timeLog('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
     if (localStorage.getItem("access_token")) {
         var req = new XMLHttpRequest();
         var url = "https://api.instagram.com/v1/media/search" +
             "?lat=" + pos.coords.latitude +
             "&lng=" + pos.coords.longitude +
             "&access_token=" + localStorage.getItem("access_token");
-        console.log("GET " + url);
+        timeLog("GET " + url);
         req.open('GET', url, true);
-        req.onload = selectPhotos.bind(this, req);
+        req.onload = selectPhotos.bind(null, req);
+        req.send();
+    }
+    else {
+        var msg = { UPDATE_TOKEN: false };
+        MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
+    }
+}
+
+function findPopularPhotos() {
+    if (localStorage.getItem("access_token")) {
+        var req = new XMLHttpRequest();
+        var url = "https://api.instagram.com/v1/media/popular" +
+            "?access_token=" + localStorage.getItem("access_token");
+        timeLog("GET " + url);
+        req.open('GET', url, true);
+        req.onload = selectPhotos.bind(null, req);
+        req.send();
+    }
+    else {
+        var msg = { UPDATE_TOKEN: false };
+        MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
+    }
+}
+
+function findFriendsPhotos() {
+    if (localStorage.getItem("access_token")) {
+        var req = new XMLHttpRequest();
+        var url = "https://api.instagram.com/v1/users/self/feed" +
+            "?access_token=" + localStorage.getItem("access_token");
+        timeLog("GET " + url);
+        req.open('GET', url, true);
+        req.onload = selectPhotos.bind(null, req);
         req.send();
     }
     else {
@@ -128,6 +164,7 @@ function selectPhotos(req, e) {
     if (req.readyState == 4) {
         var response = JSON.parse(req.responseText);
         if (req.status == 200) {
+            timeLog("got response from Instagram");
             var data = response.data;
             var candidates = [];
             var i, entry;
@@ -146,9 +183,9 @@ function selectPhotos(req, e) {
                         username: entry.user.username,
                         created_time: entry.created_time
                     });
-                    //console.log("url: " + entry.images.thumbnail.url +
-                    //            ", user: " + entry.user.username +
-                    //            ", time: " + entry.created_time);
+                    //timeLog("url: " + entry.images.thumbnail.url +
+                    //        ", user: " + entry.user.username +
+                    //        ", time: " + entry.created_time);
                 }
             }
 
@@ -167,13 +204,13 @@ function selectPhotos(req, e) {
                 // possibly post other candidates to timeline in future version
             }
             else {
-                console.log("no suitable candidates");
+                timeLog("no suitable candidates");
                 sendError("Nothing found!");
             }
         }
         else if (response && response.meta && response.meta.error_type == "OAuthAccessTokenException") {
             // lost authentication
-            console.log("lost authentication");
+            timeLog("lost authentication");
             localStorage.removeItem("access_token");
             MessageQueue.sendAppMessage({ UPDATE_TOKEN: 0 }, sendSuccess, sendFailure);
         } else {
@@ -183,24 +220,29 @@ function selectPhotos(req, e) {
 }
 
 function processPhoto(photo) {
-    console.log("processing photo at url " + photo.url);
+    timeLog("processing photo at url " + photo.url);
 
+    if (photo.url == lastImgUrl) {
+        sendError("Nothing new");
+        return;
+    }
+    lastImgUrl = photo.url;
+    
     // send to phone meta data on entry
-    console.log("timeTaken: " + photo.created_time);
     var msg = {
         PICTURE_USER: photo.username,
         PICTURE_TIME: vagueTime.get({
             to: photo.created_time * 1000
         })
     };
-    console.log("sending " + JSON.stringify(msg));
+    timeLog("sending " + JSON.stringify(msg));
     MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
 
     // load image into JPEG decoder library
     var j = new JpegImage();
     j.onload = function() {
         var w = j.width, h = j.height;
-        console.log("decoded image, size: " + w + "x" + h);
+        timeLog("decoded image, size: " + w + "x" + h);
         
         var img = {
             width: IMG_WIDTH,
@@ -211,14 +253,19 @@ function processPhoto(photo) {
 
         // now, resample the imgData to BGRA color
         ditherImage(img.data);
+        timeLog("dithered image");
         var pebbleImg = downsampleImage(img.data);
+        timeLog("downsampled image");
 
         transferInProgress = true;
         transferImageBytes(
             pebbleImg, CHUNK_SIZE,
-            function() { console.log("Done!"); transferInProgress = false; },
-            function(e) { console.log("Failed! " + e); transferInProgress = false; }
+            function() { timeLog("Done!"); transferInProgress = false; },
+            function(e) { timeLog("Failed! " + e); transferInProgress = false; }
         );
+    };
+    j.onerror = function() {
+        // FIXME: handle error from JPEG decoder
     };
     j.load(photo.url);
 }
@@ -262,7 +309,7 @@ function packImage(imgData) {
 }
 
 Pebble.addEventListener("ready", function(e) {
-    console.log("JS ready");
+    timeLog("JS ready");
     // send current access token state back to app
     var access_token = localStorage.getItem("access_token");
     var msg = { UPDATE_TOKEN: access_token ? 1 : 0 };
@@ -276,12 +323,12 @@ Pebble.addEventListener("showConfiguration", function(e) {
 Pebble.addEventListener("webviewclosed", function(e) {
     var msg = {};
     if (e.response) {
-        console.log("got access token: " + e.response);
+        timeLog("got access token: " + e.response);
         localStorage.setItem("access_token", e.response);
         msg.UPDATE_TOKEN = 1;
     }
     else {
-        console.log("no access token received");
+        timeLog("no access token received");
         localStorage.removeItem("access_token");
         msg.UPDATE_TOKEN = 0;
     }
@@ -289,21 +336,32 @@ Pebble.addEventListener("webviewclosed", function(e) {
 });
 
 Pebble.addEventListener("appmessage", function(e) {
-    console.log("Got message: " + JSON.stringify(e));
+    timeLog("Got message: " + JSON.stringify(e));
 
     if ('TAKE_PICTURE' in e.payload) {
         CHUNK_SIZE = e.payload['NETDL_CHUNK_SIZE'];
-        if ('LATITUDE' in e.payload && 'LONGITUDE' in e.payload) {
-            var pos = {
-                coords: { 
-                    latitude: e.payload.LATITUDE / 1000, 
-                    longitude: e.payload.LONGITUDE / 1000
-                } 
-            };
-            findNearbyPhotos(pos);
-        }
-        else {
-            takePicture();
+        switch (e.payload.TAKE_PICTURE) {
+            case PIC_NEARBY: 
+                if ('LATITUDE' in e.payload && 'LONGITUDE' in e.payload) {
+                    var pos = {
+                        coords: { 
+                            latitude: e.payload.LATITUDE / 1000, 
+                            longitude: e.payload.LONGITUDE / 1000
+                        } 
+                    };
+                    findNearbyPhotos(pos);
+                }
+                else {
+                    takePicture();
+                }
+                break;
+            case PIC_POPULAR:
+                findPopularPhotos();
+                break;
+            case PIC_FRIENDS:
+                findFriendsPhotos();
+                break;
         }
     }
 });
+})();
