@@ -1,5 +1,7 @@
 phantom-camera
 ==============
+[![Build Status](https://travis-ci.org/unwiredben/phantom-camera.svg)](https://travis-ci.org/unwiredben/phantom-camera)
+
 Take a picture with your Pebble watch!  Well, actually, let other people take pictures for you via Instagram.
 
 This only works on the Basalt color platform, as I didn't want to try to convert images to b/w for Aplite.
