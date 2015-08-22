@@ -14,7 +14,7 @@ static char sTimeTaken[32];
 static char sWhere[32];
 static bool sIsPacked;
 
-#define MESSAGE_INTERVAL 5000
+#define MESSAGE_INTERVAL 3000
 static const char *sMessages[4];
 static uint8_t sNextMessage = 0;
 static AppTimer *sMessageTimer = NULL;
@@ -53,46 +53,34 @@ static void show_message(const char *msg) {
 }
 
 /* The key used to indicate Instagram token state. UInt8 as boolean */
-#define UPDATE_TOKEN 1
-
+#define UPDATE_TOKEN     1
 /* The key used to indicate that you should grab the nearest picture, UInt8 - ignored */
-#define TAKE_PICTURE 2
-
+#define TAKE_PICTURE     2
 /* values to send with TAKE_PICTURE to indicate which one to take */
-#define PIC_NEARBY 0
-#define PIC_POPULAR 1
-#define PIC_FRIENDS 2
-    
+#define PIC_NEARBY       0
+#define PIC_POPULAR      1
+#define PIC_FRIENDS      2
 /* key for username associated with incoming picture, string */
-#define PICTURE_USER 3
-
+#define PICTURE_USER     3
 /* key for description text associated with incoming picture, string */
-#define PICTURE_TEXT 4
-
+#define PICTURE_TEXT     4
 /* key for display time of incoming picture, string */
-#define PICTURE_TIME 5
-
+#define PICTURE_TIME     5
 /* keys to send predefined position with picture request to override geolocation */
-#define LATITUDE 6
-#define LONGITUDE 7
-
+#define LATITUDE         6
+#define LONGITUDE        7
 /* if set, bitmap is using 6-bit pixels, packed 4 pixels to 3 bytes */
-#define PACKED_IMG 8
-
+#define PACKED_IMG       8
 /* string with error message from JS side, usually a network failure */
-#define ERROR 9
-   
+#define ERROR            9
 /* The key used to transmit download data. Contains byte array. */
-#define NETDL_DATA 5000 
+#define NETDL_DATA       5000 
 /* The key used to start a new image transmission. Contains uint32 size */
-#define NETDL_BEGIN NETDL_DATA + 1
+#define NETDL_BEGIN      5001
 /* The key used to finalize an image transmission. Data not defined. */
-#define NETDL_END NETDL_DATA + 2
-
+#define NETDL_END        5002
 /* The key used to tell the JS how big chunks should be */
-#define NETDL_CHUNK_SIZE NETDL_DATA + 3
-/* The key used to request a PBI */
-#define NETDL_URL NETDL_DATA + 4
+#define NETDL_CHUNK_SIZE 5003
 
 typedef void (*NetDownloadCallback)(void);
 
@@ -147,8 +135,12 @@ static void take_picture(int type) {
     
     DictionaryIterator *outbox;
     app_message_outbox_begin(&outbox);
-    // Tell the javascript how big we want each chunk of data: max possible size - dictionary overhead with one Tuple in it.
-    uint32_t chunk_size = app_message_inbox_size_maximum() - dict_calc_buffer_size(1);
+    uint32_t inbox_max = app_message_inbox_size_maximum();
+    // calculate rest of buffer using a tuple with a 1-byte flag and a 0-byte buffer
+    uint32_t dict_size = dict_calc_buffer_size(2, 1, 0);
+    uint32_t chunk_size = inbox_max - dict_size;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "NETDL_CHUNK_SIZE: inbox_max %" PRIu32 " dict %" PRIu32 " chunk %" PRIu32,
+            inbox_max, dict_size, chunk_size);
     dict_write_uint32(outbox, NETDL_CHUNK_SIZE, chunk_size);
     // include request token
     dict_write_int8(outbox, TAKE_PICTURE, type);
@@ -314,7 +306,7 @@ static void download_complete_handler(void) {
 static void click_handler(ClickRecognizerRef recognizer, void *context) {
     switch (click_recognizer_get_button_id(recognizer)) {
         case BUTTON_ID_UP: {
-            show_message("Discovering...");
+            show_message("Popularizing...");
             take_picture(PIC_POPULAR);
             break;
         }

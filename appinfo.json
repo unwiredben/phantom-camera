@@ -25,14 +25,14 @@
     "resources": {
         "media": [
             {
-                "file": "images/phantom_28x28.png",
-                "menuIcon": true,
-                "name": "IMAGE_PHANTOM_ICON",
+                "file": "images/phantom.png",
+                "name": "IMAGE_PHANTOM",
                 "type": "png"
             },
             {
-                "file": "images/phantom.png",
-                "name": "IMAGE_PHANTOM",
+                "file": "images/phantom_28x28.png",
+                "menuIcon": true,
+                "name": "IMAGE_PHANTOM_ICON",
                 "type": "png"
             }
         ]
@@ -43,7 +43,7 @@
         "basalt"
     ],
     "uuid": "40188926-7314-4eea-81de-2a7fcb9f7499",
-    "versionLabel": "2.0",
+    "versionLabel": "2.1",
     "watchapp": {
         "watchface": false
     }

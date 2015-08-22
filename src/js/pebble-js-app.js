@@ -43,7 +43,6 @@ var sendError = function(errorMsg) {
 };
 
 function transferImageBytes(bytes, chunkSize, successCb, failureCb) {
-    timeLog("transferImageBytes, chunkSize" + chunkSize);
     var success = function() {
         if (successCb !== undefined) {
             successCb();
@@ -340,6 +339,7 @@ Pebble.addEventListener("appmessage", function(e) {
 
     if ('TAKE_PICTURE' in e.payload) {
         CHUNK_SIZE = e.payload['NETDL_CHUNK_SIZE'];
+        timeLog("CHUNK_SIZE = " + CHUNK_SIZE);
         switch (e.payload.TAKE_PICTURE) {
             case PIC_NEARBY: 
                 if ('LATITUDE' in e.payload && 'LONGITUDE' in e.payload) {
