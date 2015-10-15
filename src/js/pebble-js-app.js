@@ -158,6 +158,8 @@ function findFriendsPhotos() {
     }
 }
 
+var candidates = [];
+    
 // step 3 - find candidate photos to request and resample
 function selectPhotos(req, e) {
     if (req.readyState == 4) {
@@ -165,8 +167,8 @@ function selectPhotos(req, e) {
         if (req.status == 200) {
             timeLog("got response from Instagram");
             var data = response.data;
-            var candidates = [];
             var i, entry;
+            candidates = [];
             for (i in data) {
                 entry = data[i];
                 if (entry.type == "image" &&
@@ -175,12 +177,16 @@ function selectPhotos(req, e) {
                     entry.images.thumbnail.url &&
                     entry.user &&
                     entry.user.username &&
-                    entry.created_time) {
+                    entry.user.full_name &&
+                    entry.created_time &&
+                    entry.likes) {
                     candidates.push({
                         // url: entry.images.thumbnail.url,
                         url: entry.images.low_resolution.url,
                         username: entry.user.username,
-                        created_time: entry.created_time
+                        fullname: entry.user.full_name,
+                        created_time: entry.created_time,
+                        likes: entry.likes.count
                     });
                     //timeLog("url: " + entry.images.thumbnail.url +
                     //        ", user: " + entry.user.username +
@@ -189,23 +195,16 @@ function selectPhotos(req, e) {
             }
 
             // process candidates list, pick most recent one to fetch
-            if (candidates.length > 0) {
-                var latestEntry = {
-                    created_time: 0
-                };
-                for (i in candidates) {
-                    entry = candidates[i];
-                    if (entry.created_time > latestEntry.created_time) {
-                        latestEntry = entry;
-                    }
-                }
-                processPhoto(latestEntry);
-                // possibly post other candidates to timeline in future version
-            }
-            else {
+            if (candidates.length === 0) {
                 timeLog("no suitable candidates");
                 sendError("Nothing found!");
+                return;
             }
+            candidates.sort(function(a,b) {
+                // sort so most recent is first
+                return b.created_time - a.created_time;
+            });
+            showNextCandidate();
         }
         else if (response && response.meta && response.meta.error_type == "OAuthAccessTokenException") {
             // lost authentication
@@ -218,6 +217,16 @@ function selectPhotos(req, e) {
     }
 }
 
+function showNextCandidate() {
+    if (candidates.length > 0) {
+        processPhoto(candidates.shift());
+    }
+    else {
+        timeLog("end of list");
+        sendError("That's all!");
+    }
+}
+    
 function processPhoto(photo) {
     timeLog("processing photo at url " + photo.url);
 
@@ -228,11 +237,16 @@ function processPhoto(photo) {
     lastImgUrl = photo.url;
     
     // send to phone meta data on entry
+    var likes = photo.likes === 1 ?
+        "1 like" :
+        photo.likes + " likes";
     var msg = {
-        PICTURE_USER: photo.username,
+        PICTURE_USER: "@" + photo.username,
+        PICTURE_FULLNAME: photo.fullname,
         PICTURE_TIME: vagueTime.get({
             to: photo.created_time * 1000
-        })
+        }),
+        PICTURE_LIKES: likes
     };
     timeLog("sending " + JSON.stringify(msg));
     MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
@@ -334,33 +348,41 @@ Pebble.addEventListener("webviewclosed", function(e) {
     MessageQueue.sendAppMessage(msg, sendSuccess, sendFailure);
 });
 
+var lastRequest;    
+    
 Pebble.addEventListener("appmessage", function(e) {
     timeLog("Got message: " + JSON.stringify(e));
 
     if ('TAKE_PICTURE' in e.payload) {
         CHUNK_SIZE = e.payload['NETDL_CHUNK_SIZE'];
         timeLog("CHUNK_SIZE = " + CHUNK_SIZE);
-        switch (e.payload.TAKE_PICTURE) {
-            case PIC_NEARBY: 
-                if ('LATITUDE' in e.payload && 'LONGITUDE' in e.payload) {
-                    var pos = {
-                        coords: { 
-                            latitude: e.payload.LATITUDE / 1000, 
-                            longitude: e.payload.LONGITUDE / 1000
-                        } 
-                    };
-                    findNearbyPhotos(pos);
-                }
-                else {
-                    takePicture();
-                }
-                break;
-            case PIC_POPULAR:
-                findPopularPhotos();
-                break;
-            case PIC_FRIENDS:
-                findFriendsPhotos();
-                break;
+        if (e.payload.TAKE_PICTURE == lastRequest) {
+            showNextCandidate();
+        }
+        else {
+            lastRequest = e.payload.TAKE_PICTURE;
+            switch (e.payload.TAKE_PICTURE) {
+                case PIC_NEARBY: 
+                    if ('LATITUDE' in e.payload && 'LONGITUDE' in e.payload) {
+                        var pos = {
+                            coords: { 
+                                latitude: e.payload.LATITUDE / 1000, 
+                                longitude: e.payload.LONGITUDE / 1000
+                            } 
+                        };
+                        findNearbyPhotos(pos);
+                    }
+                    else {
+                        takePicture();
+                    }
+                    break;
+                case PIC_POPULAR:
+                    findPopularPhotos();
+                    break;
+                case PIC_FRIENDS:
+                    findFriendsPhotos();
+                    break;
+            }
         }
     }
 });

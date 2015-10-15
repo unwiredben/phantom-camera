@@ -9,12 +9,13 @@ static GBitmap *phantom_bmp;
 static uint8_t *sDataBuffer = NULL;
 static uint32_t sDataBufferLen = 0;
 static char sErrorMsg[32];
-static char sName[32];
+static char sUserName[32];
+static char sFullName[32];
 static char sTimeTaken[32];
-static char sWhere[32];
+static char sLikes[32];
 static bool sIsPacked;
 
-#define MESSAGE_INTERVAL 3000
+#define MESSAGE_INTERVAL 2000
 static const char *sMessages[4];
 static uint8_t sNextMessage = 0;
 static AppTimer *sMessageTimer = NULL;
@@ -60,12 +61,6 @@ static void show_message(const char *msg) {
 #define PIC_NEARBY       0
 #define PIC_POPULAR      1
 #define PIC_FRIENDS      2
-/* key for username associated with incoming picture, string */
-#define PICTURE_USER     3
-/* key for description text associated with incoming picture, string */
-#define PICTURE_TEXT     4
-/* key for display time of incoming picture, string */
-#define PICTURE_TIME     5
 /* keys to send predefined position with picture request to override geolocation */
 #define LATITUDE         6
 #define LONGITUDE        7
@@ -73,6 +68,16 @@ static void show_message(const char *msg) {
 #define PACKED_IMG       8
 /* string with error message from JS side, usually a network failure */
 #define ERROR            9
+/* key for username associated with incoming picture, string */
+#define PICTURE_USER     101
+/* key for description text associated with incoming picture, string */
+#define PICTURE_TEXT     102
+/* key for display time of incoming picture, string */
+#define PICTURE_TIME     103
+/* key for string describing media poster's full name */
+#define PICTURE_FULLNAME 104
+/* key for string describing the number of likes a picture has */
+#define PICTURE_LIKES    105
 /* The key used to transmit download data. Contains byte array. */
 #define NETDL_DATA       5000 
 /* The key used to start a new image transmission. Contains uint32 size */
@@ -181,7 +186,7 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
                 break;
             }
             case NETDL_BEGIN: {
-                APP_LOG(APP_LOG_LEVEL_DEBUG, "Start transmission. Size=%lu", tuple->value->uint32);
+                APP_LOG(APP_LOG_LEVEL_DEBUG, "Start transmission. Size=%" PRIu32, tuple->value->uint32);
                 ctx->length = tuple->value->uint32;
                 // limit length to size of buffer
                 if (ctx->length > sDataBufferLen)
@@ -228,8 +233,14 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
             }
             case PICTURE_USER: {
                 APP_LOG(APP_LOG_LEVEL_DEBUG, "user: %s", tuple->value->cstring);
-                strncpy(sName, tuple->value->cstring, sizeof(sName));
-                sName[sizeof(sName) - 1] = 0;
+                strncpy(sUserName, tuple->value->cstring, sizeof(sUserName));
+                sUserName[sizeof(sUserName) - 1] = 0;
+                break;
+            }
+            case PICTURE_FULLNAME: {
+                APP_LOG(APP_LOG_LEVEL_DEBUG, "fullname: %s", tuple->value->cstring);
+                strncpy(sFullName, tuple->value->cstring, sizeof(sFullName));
+                sFullName[sizeof(sFullName) - 1] = 0;
                 break;
             }
             case PICTURE_TIME: {
@@ -240,6 +251,12 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
             }
             case PICTURE_TEXT: {
                 APP_LOG(APP_LOG_LEVEL_DEBUG, "text: %s", tuple->value->cstring);
+                break;
+            }
+            case PICTURE_LIKES: {
+                APP_LOG(APP_LOG_LEVEL_DEBUG, "likes: %s", tuple->value->cstring);
+                strncpy(sLikes, tuple->value->cstring, sizeof(sLikes));
+                sLikes[sizeof(sLikes) - 1] = 0;
                 break;
             }
             case ERROR: {
@@ -285,7 +302,9 @@ static void netdownload_initialize(NetDownloadCallback callback, uint8_t *data, 
     app_message_register_outbox_sent(netdownload_out_success);
     app_message_register_outbox_failed(netdownload_out_failed);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Max buffer sizes are %li / %li", app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
-    app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+    // use largest possible inbox for efficient picture transfer,
+    // but outbox can be very small since we never send much data.
+    app_message_open(app_message_inbox_size_maximum(), 64);
 }
 
 static void netdownload_deinitialize(void) {
@@ -300,7 +319,8 @@ static void download_complete_handler(void) {
     
     /* image_bmp's data is updated, so safe to show it now */
     bitmap_layer_set_bitmap(bitmap_layer, image_bmp);
-    show_messages(sTimeTaken, sName, NULL, NULL);
+    show_messages(sUserName, sFullName, sLikes, sTimeTaken);
+    /* FIXME: add timer in 30 seconds, change to just name */
 }
 
 static void click_handler(ClickRecognizerRef recognizer, void *context) {

@@ -8,10 +8,11 @@
         "NETDL_DATA": 5000,
         "NETDL_END": 5002,
         "PACKED_IMG": 8,
-        "PICTURE_FULLNAME": 10,
-        "PICTURE_TEXT": 4,
-        "PICTURE_TIME": 5,
-        "PICTURE_USER": 3,
+        "PICTURE_FULLNAME": 104,
+        "PICTURE_LIKES": 105,
+        "PICTURE_TEXT": 102,
+        "PICTURE_TIME": 103,
+        "PICTURE_USER": 101,
         "TAKE_PICTURE": 2,
         "UPDATE_TOKEN": 1
     },
@@ -43,7 +44,7 @@
         "basalt"
     ],
     "uuid": "40188926-7314-4eea-81de-2a7fcb9f7499",
-    "versionLabel": "2.1",
+    "versionLabel": "2.2",
     "watchapp": {
         "watchface": false
     }
