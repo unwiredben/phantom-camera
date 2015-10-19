@@ -177,14 +177,13 @@ function selectPhotos(req, e) {
                     entry.images.thumbnail.url &&
                     entry.user &&
                     entry.user.username &&
-                    entry.user.full_name &&
                     entry.created_time &&
                     entry.likes) {
                     candidates.push({
                         // url: entry.images.thumbnail.url,
                         url: entry.images.low_resolution.url,
                         username: entry.user.username,
-                        fullname: entry.user.full_name,
+                        fullname: entry.user.full_name || "",
                         created_time: entry.created_time,
                         likes: entry.likes.count
                     });

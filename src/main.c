@@ -319,7 +319,12 @@ static void download_complete_handler(void) {
     
     /* image_bmp's data is updated, so safe to show it now */
     bitmap_layer_set_bitmap(bitmap_layer, image_bmp);
-    show_messages(sUserName, sFullName, sLikes, sTimeTaken);
+    if (strlen(sFullName) > 0) {
+        show_messages(sUserName, sFullName, sLikes, sTimeTaken);
+    }
+    else {
+        show_messages(sUserName, sLikes, sTimeTaken, NULL);
+    }
     /* FIXME: add timer in 30 seconds, change to just name */
 }
 
