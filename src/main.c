@@ -223,7 +223,7 @@ static void netdownload_receive(DictionaryIterator *iter, void *context) {
                 APP_LOG(APP_LOG_LEVEL_DEBUG, "has_instagram_token: %s",
                        tuple->value->uint8 ? "yes" : "no");
                 if (tuple->value->uint8) {
-                    show_messages("Select: Nearby", "Up: Popular", "Down: My Feed", NULL);
+                    show_messages("Select: Nearby", "Up: Popular", "Down: Followed", NULL);
                 }
                 else {
                     show_message("Configure me!");
@@ -301,7 +301,9 @@ static void netdownload_initialize(NetDownloadCallback callback, uint8_t *data, 
     app_message_register_inbox_dropped(netdownload_dropped);
     app_message_register_outbox_sent(netdownload_out_success);
     app_message_register_outbox_failed(netdownload_out_failed);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Max buffer sizes are %li / %li", app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Max buffer sizes are %" PRIu32 " / %" PRIu32,
+            app_message_inbox_size_maximum(),
+            app_message_outbox_size_maximum());
     // use largest possible inbox for efficient picture transfer,
     // but outbox can be very small since we never send much data.
     app_message_open(app_message_inbox_size_maximum(), 64);
@@ -360,12 +362,19 @@ static void click_config_provider(void *context) {
 
 static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
-
-    bitmap_layer = bitmap_layer_create((GRect) { .origin = { 0, 0 }, .size = { 144, 144 } });
+    GRect frame = layer_get_frame(window_layer);
+    int window_width = frame.size.w;
+   
+    bitmap_layer = bitmap_layer_create((GRect) { .origin = { 0, 0 }, .size = { window_width, window_width } });
     bitmap_layer_set_bitmap(bitmap_layer, phantom_bmp);
+    bitmap_layer_set_alignment(bitmap_layer, GAlignCenter);
     layer_add_child(window_layer, bitmap_layer_get_layer(bitmap_layer));
 
-    text_layer = text_layer_create((GRect) { .origin = { 0, 144 }, .size = { 144, 24 } });
+    // 144 works OK on round screens, although some text can get cut off on long names
+    // and it matches up great on rectangular screens since it's just below the picture
+    text_layer = text_layer_create((GRect) {
+        .origin = { 0, PBL_IF_RECT_ELSE(144, 140) },
+        .size = { window_width, 24 } });
     text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     show_message("Contacting spirits...");
@@ -379,10 +388,12 @@ static void window_unload(Window *window) {
 }
 
 static void init(void) {
-    image_bmp = gbitmap_create_blank((GSize){144, 144}, GBitmapFormat8Bit);
     phantom_bmp = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_PHANTOM);
 
     window = window_create();
+    Layer *window_layer = window_get_root_layer(window);
+    GRect frame = layer_get_frame(window_layer);
+    int window_width = frame.size.w;
     window_set_window_handlers(window, (WindowHandlers) {
         .load = window_load,
         .unload = window_unload,
@@ -392,7 +403,8 @@ static void init(void) {
 
     // Need to initialize this first to make sure it is there when
     // the window_load function is called by window_stack_push.
-    netdownload_initialize(download_complete_handler, gbitmap_get_data(image_bmp), 144 * 144);
+    image_bmp = gbitmap_create_blank((GSize){window_width, window_width}, GBitmapFormat8Bit);
+    netdownload_initialize(download_complete_handler, gbitmap_get_data(image_bmp), window_width * window_width);
 
     // get ready message ASAP
     app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);

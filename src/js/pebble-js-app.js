@@ -11,7 +11,7 @@ var PIC_NEARBY = 0, PIC_POPULAR = 1, PIC_FRIENDS = 2;
 /* set minimum based on pebble.h's APP_MESSAGE_INBOX_MINIMUM */
 var CHUNK_SIZE = 124;
 
-/* width of Pebble screen */
+/* width of rectangular Pebble screen, gets set to 180 for round watches */
 var IMG_WIDTH = 144;
     
 /* last image to send to watch, used to avoid re-send */    
@@ -320,8 +320,14 @@ function packImage(imgData) {
     return packedImg;
 }
 
+var isRound = false;
+    
 Pebble.addEventListener("ready", function(e) {
     timeLog("JS ready");
+    // check platform, see if we need to get larger pictures to fill round screen
+    if (Pebble.getActiveWatchInfo().platform === "chalk") {
+        IMG_WIDTH = 180;
+    }
     // send current access token state back to app
     var access_token = localStorage.getItem("access_token");
     var msg = { UPDATE_TOKEN: access_token ? 1 : 0 };

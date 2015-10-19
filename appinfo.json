@@ -41,10 +41,11 @@
     "sdkVersion": "3",
     "shortName": "Phantom Camera",
     "targetPlatforms": [
-        "basalt"
+        "basalt",
+        "chalk"
     ],
     "uuid": "40188926-7314-4eea-81de-2a7fcb9f7499",
-    "versionLabel": "2.3",
+    "versionLabel": "2.4",
     "watchapp": {
         "watchface": false
     }
