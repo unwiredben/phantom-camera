@@ -2,6 +2,10 @@ phantom-camera
 ==============
 [![Build Status](https://travis-ci.org/unwiredben/phantom-camera.svg)](https://travis-ci.org/unwiredben/phantom-camera)
 
+DEPRECATION NOTICE
+==================
+As of June 1st, 2016, Instagram has disabled access to the APIs needed for this application.  It will be removed from the Pebble store.  Sorry!
+
 Take a picture with your Pebble watch!  Well, actually, let other people take pictures for you via Instagram.
 
 This only works on color devices, as I didn't want to try to convert images to b/w for Aplite.
